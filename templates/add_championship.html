@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إضافة بطولة جديدة</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #444; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .submit-btn { width: 100%; background-color: #007bff; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>إضافة بطولة جديدة</h1>
+        <form action="{{ url_for('add_championship') }}" method="post">
+            <div class="form-group">
+                <label for="championship_name">اسم البطولة</label>
+                <input type="text" id="championship_name" name="championship_name" placeholder="مثال: الدوري الإنجليزي الممتاز" required>
+            </div>
+            <button type="submit" class="submit-btn">إضافة البطولة</button>
+        </form>
+    </div>
+</body>
+</html>
