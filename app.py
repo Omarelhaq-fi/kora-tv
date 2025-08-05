@@ -1,5 +1,5 @@
 # app.py
-# Final, stable version with all features, bug fixes, and Arabic encoding fix.
+# Final, stable version with all features and bug fixes.
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -20,7 +20,7 @@ try:
                                           user='abc901_koratv',
                                           password='omarreda123',
                                           database='db_abc901_koratv',
-                                          charset='utf8mb4' # <-- CRITICAL FIX FOR ARABIC
+                                          charset='utf8mb4'
                                           )
     print("Database connection pool created successfully.")
 except Error as e:
@@ -90,7 +90,7 @@ def index():
     finally:
         if cursor: cursor.close()
         if connection: connection.close()
-    return render_template('index.html', matches=matches_with_status)
+    return render_template('index.html', matches=matches_with_status, current_year=datetime.now().year)
 
 @app.route('/match/<int:match_id>')
 def match(match_id):
@@ -119,7 +119,7 @@ def match(match_id):
     finally:
         if cursor: cursor.close()
         if connection: connection.close()
-    return render_template('match.html', match=match_data)
+    return render_template('match.html', match=match_data, current_year=datetime.now().year)
 
 # --- Authentication Routes ---
 @app.route('/login', methods=['GET', 'POST'])
