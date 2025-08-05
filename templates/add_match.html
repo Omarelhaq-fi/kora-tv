@@ -13,7 +13,6 @@
         input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         textarea { resize: vertical; min-height: 100px; }
         .submit-btn { width: 100%; background-color: #007bff; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        .submit-btn:hover { background-color: #0056b3; }
     </style>
 </head>
 <body>
@@ -23,6 +22,7 @@
             <div class="form-group">
                 <label for="team1_id">الفريق الأول</label>
                 <select name="team1_id" id="team1_id" required>
+                    <option value="">اختر الفريق الأول</option>
                     {% for team in teams %}
                     <option value="{{ team.id }}">{{ team.name }}</option>
                     {% endfor %}
@@ -31,6 +31,7 @@
             <div class="form-group">
                 <label for="team2_id">الفريق الثاني</label>
                 <select name="team2_id" id="team2_id" required>
+                    <option value="">اختر الفريق الثاني</option>
                     {% for team in teams %}
                     <option value="{{ team.id }}">{{ team.name }}</option>
                     {% endfor %}
@@ -39,6 +40,7 @@
             <div class="form-group">
                 <label for="championship_id">البطولة</label>
                 <select name="championship_id" id="championship_id" required>
+                    <option value="">اختر البطولة</option>
                     {% for championship in championships %}
                     <option value="{{ championship.id }}">{{ championship.name }}</option>
                     {% endfor %}
@@ -47,6 +49,10 @@
             <div class="form-group">
                 <label for="match_time">توقيت المباراة</label>
                 <input type="datetime-local" id="match_time" name="match_time" required>
+            </div>
+            <div class="form-group">
+                <label for="commentator">المعلق</label>
+                <input type="text" id="commentator" name="commentator" placeholder="اسم المعلق" required>
             </div>
             <div class="form-group">
                 <label for="description">الوصف</label>
