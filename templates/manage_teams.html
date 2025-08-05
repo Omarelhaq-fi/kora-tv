@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الفرق</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #444; }
+        .action-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn { display: inline-block; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; }
+        .btn-add { background-color: #28a745; }
+        .btn-back { background-color: #6c757d; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: right; vertical-align: middle; }
+        th { background-color: #f8f8f8; }
+        .logo-img { width: 40px; height: 40px; object-fit: contain; }
+        .alert { padding: 15px; margin-bottom: 20px; border: 1px solid transparent; border-radius: 4px; }
+        .alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
+        .alert-danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="action-bar">
+            <h1>إدارة الفرق</h1>
+            <div>
+                <a href="{{ url_for('add_team') }}" class="btn btn-add">إضافة فريق جديد</a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-back">العودة للوحة التحكم</a>
+            </div>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        <table>
+            <thead>
+                <tr>
+                    <th>الشعار</th>
+                    <th>اسم الفريق</th>
+                    <th>إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in teams %}
+                <tr>
+                    <td><img src="{{ team.logo_url }}" alt="{{ team.name }} Logo" class="logo-img"></td>
+                    <td>{{ team.name }}</td>
+                    <td><a href="#">تعديل</a> | <a href="#">حذف</a></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" style="text-align: center;">لا توجد فرق مضافة.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
