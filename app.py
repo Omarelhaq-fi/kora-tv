@@ -319,22 +319,25 @@ def edit_match(match_id):
     championships = []
     try:
         connection = get_db_connection()
-        if connection:
-            cursor = connection.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM matches WHERE id = %s", (match_id,))
-            match = cursor.fetchone()
-            
-            if not match:
-                flash("Match not found!", "danger")
-                return redirect(url_for('manage_matches'))
+        if not connection:
+            flash("Database connection failed.", "danger")
+            return redirect(url_for('manage_matches'))
 
-            cursor.execute("SELECT id, name FROM teams ORDER BY name;")
-            teams = cursor.fetchall()
-            cursor.execute("SELECT id, name FROM championships ORDER BY name;")
-            championships = cursor.fetchall()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM matches WHERE id = %s", (match_id,))
+        match = cursor.fetchone()
+        
+        if not match:
+            flash("Match not found!", "danger")
+            return redirect(url_for('manage_matches'))
 
-            if match.get('match_time') and isinstance(match.get('match_time'), datetime):
-                match['match_time_str'] = match['match_time'].strftime('%Y-%m-%dT%H:%M')
+        cursor.execute("SELECT id, name FROM teams ORDER BY name;")
+        teams = cursor.fetchall()
+        cursor.execute("SELECT id, name FROM championships ORDER BY name;")
+        championships = cursor.fetchall()
+
+        if match.get('match_time') and isinstance(match.get('match_time'), datetime):
+            match['match_time_str'] = match['match_time'].strftime('%Y-%m-%dT%H:%M')
 
     except Exception as e:
         print(f"Error in edit_match (GET) route: {e}")
