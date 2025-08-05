@@ -47,7 +47,7 @@ def login_required(f):
     return decorated_function
 
 def get_match_status(match_time):
-    if not match_time:
+    if not isinstance(match_time, datetime):
         return "غير محدد"
     now = datetime.now()
     match_end_time = match_time + timedelta(minutes=110)
@@ -81,13 +81,10 @@ def index():
             cursor.execute(query)
             matches = cursor.fetchall()
             for match in matches:
-                if match.get('match_time'):
-                    match['status'] = get_match_status(match['match_time'])
-                else:
-                    match['status'] = "غير محدد"
+                match['status'] = get_match_status(match.get('match_time'))
                 matches_with_status.append(match)
-    except Error as e:
-        print(f"Error fetching matches for index: {e}")
+    except Exception as e:
+        print(f"Error in index route: {e}")
     finally:
         if cursor: cursor.close()
         if connection: connection.close()
@@ -113,10 +110,10 @@ def match(match_id):
                 WHERE m.id = %s;
             """, (match_id,))
             match_data = cursor.fetchone()
-            if match_data and match_data.get('match_time'):
-                 match_data['status'] = get_match_status(match_data['match_time'])
-    except Error as e:
-        print(f"Error fetching match details: {e}")
+            if match_data:
+                 match_data['status'] = get_match_status(match_data.get('match_time'))
+    except Exception as e:
+        print(f"Error in match route: {e}")
     finally:
         if cursor: cursor.close()
         if connection: connection.close()
@@ -139,8 +136,9 @@ def login():
                 cursor = connection.cursor(dictionary=True)
                 cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
                 user = cursor.fetchone()
-        except Error as e:
-            flash(f"Database error: {e}", "danger")
+        except Exception as e:
+            print(f"Error in login route: {e}")
+            flash("A server error occurred. Please try again later.", "danger")
         finally:
             if cursor: cursor.close()
             if connection: connection.close()
@@ -171,7 +169,8 @@ def register():
                 return redirect(url_for('login'))
         except mysql.connector.IntegrityError:
             flash('Username already exists.', 'danger')
-        except Error as e:
+        except Exception as e:
+            print(f"Error in register route: {e}")
             flash(f"An error occurred: {e}", "danger")
         finally:
             if cursor: cursor.close()
@@ -210,7 +209,8 @@ def manage_matches():
             """
             cursor.execute(query)
             matches = cursor.fetchall()
-    except Error as e:
+    except Exception as e:
+        print(f"Error in manage_matches route: {e}")
         flash(f"Error fetching matches: {e}", "danger")
     finally:
         if cursor: cursor.close()
@@ -246,7 +246,8 @@ def add_match():
             connection.commit()
             flash('Match added successfully!', 'success')
             return redirect(url_for('manage_matches'))
-        except Error as e:
+        except Exception as e:
+            print(f"Error in add_match (POST) route: {e}")
             flash(f"An error occurred while adding the match: {e}", "danger")
             return redirect(url_for('add_match'))
         finally:
@@ -264,7 +265,8 @@ def add_match():
             teams = cursor.fetchall()
             cursor.execute("SELECT id, name FROM championships ORDER BY name;")
             championships = cursor.fetchall()
-    except Error as e:
+    except Exception as e:
+        print(f"Error in add_match (GET) route: {e}")
         flash(f"Could not load data for the form: {e}", "danger")
     finally:
         if cursor: cursor.close()
@@ -301,7 +303,8 @@ def edit_match(match_id):
             connection.commit()
             flash('Match updated successfully!', 'success')
             return redirect(url_for('manage_matches'))
-        except Error as e:
+        except Exception as e:
+            print(f"Error in edit_match (POST) route: {e}")
             flash(f"An error occurred while updating the match: {e}", "danger")
             return redirect(url_for('edit_match', match_id=match_id))
         finally:
@@ -328,10 +331,11 @@ def edit_match(match_id):
             cursor.execute("SELECT id, name FROM championships ORDER BY name;")
             championships = cursor.fetchall()
 
-            if match.get('match_time'):
+            if match.get('match_time') and isinstance(match.get('match_time'), datetime):
                 match['match_time_str'] = match['match_time'].strftime('%Y-%m-%dT%H:%M')
 
-    except Error as e:
+    except Exception as e:
+        print(f"Error in edit_match (GET) route: {e}")
         flash(f"Could not load data for editing: {e}", "danger")
         return redirect(url_for('manage_matches'))
     finally:
@@ -352,7 +356,8 @@ def delete_match(match_id):
             cursor.execute("DELETE FROM matches WHERE id = %s", (match_id,))
             connection.commit()
             flash("Match deleted successfully.", "success")
-    except Error as e:
+    except Exception as e:
+        print(f"Error in delete_match route: {e}")
         flash(f"Error deleting match: {e}", "danger")
     finally:
         if cursor: cursor.close()
@@ -372,7 +377,8 @@ def manage_teams():
             cursor = connection.cursor(dictionary=True)
             cursor.execute("SELECT id, name, logo_url FROM teams ORDER BY name;")
             teams = cursor.fetchall()
-    except Error as e:
+    except Exception as e:
+        print(f"Error in manage_teams route: {e}")
         flash(f"Error fetching teams: {e}", "danger")
     finally:
         if cursor: cursor.close()
@@ -396,7 +402,8 @@ def add_team():
                 flash(f"Team '{team_name}' added successfully!", "success")
         except mysql.connector.IntegrityError:
             flash(f"Team '{team_name}' already exists.", "danger")
-        except Error as e:
+        except Exception as e:
+            print(f"Error in add_team route: {e}")
             flash(f"An error occurred: {e}", "danger")
         finally:
             if cursor: cursor.close()
@@ -416,7 +423,8 @@ def manage_championships():
             cursor = connection.cursor(dictionary=True)
             cursor.execute("SELECT id, name FROM championships ORDER BY name;")
             championships = cursor.fetchall()
-    except Error as e:
+    except Exception as e:
+        print(f"Error in manage_championships route: {e}")
         flash(f"Error fetching championships: {e}", "danger")
     finally:
         if cursor: cursor.close()
@@ -439,7 +447,8 @@ def add_championship():
                 flash(f"Championship '{championship_name}' added successfully!", "success")
         except mysql.connector.IntegrityError:
             flash(f"Championship '{championship_name}' already exists.", "danger")
-        except Error as e:
+        except Exception as e:
+            print(f"Error in add_championship route: {e}")
             flash(f"An error occurred: {e}", "danger")
         finally:
             if cursor: cursor.close()
