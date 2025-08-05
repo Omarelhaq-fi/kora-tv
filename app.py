@@ -1,5 +1,5 @@
 # app.py
-# Final version with robust error handling and full CRUD for matches.
+# Final, stable version with all features and bug fixes.
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -81,7 +81,10 @@ def index():
             cursor.execute(query)
             matches = cursor.fetchall()
             for match in matches:
-                match['status'] = get_match_status(match['match_time'])
+                if match.get('match_time'):
+                    match['status'] = get_match_status(match['match_time'])
+                else:
+                    match['status'] = "غير محدد"
                 matches_with_status.append(match)
     except Error as e:
         print(f"Error fetching matches for index: {e}")
@@ -110,7 +113,7 @@ def match(match_id):
                 WHERE m.id = %s;
             """, (match_id,))
             match_data = cursor.fetchone()
-            if match_data:
+            if match_data and match_data.get('match_time'):
                  match_data['status'] = get_match_status(match_data['match_time'])
     except Error as e:
         print(f"Error fetching match details: {e}")
@@ -217,7 +220,6 @@ def manage_matches():
 @app.route('/dashboard/matches/add', methods=['GET', 'POST'])
 @login_required
 def add_match():
-    # ... (This function remains the same as the previous version)
     connection = None
     cursor = None
     if request.method == 'POST':
@@ -272,11 +274,16 @@ def add_match():
 @app.route('/dashboard/matches/edit/<int:match_id>', methods=['GET', 'POST'])
 @login_required
 def edit_match(match_id):
-    connection = get_db_connection()
+    connection = None
     cursor = None
     
     if request.method == 'POST':
         try:
+            connection = get_db_connection()
+            if not connection:
+                flash("Database connection failed.", "danger")
+                return redirect(url_for('edit_match', match_id=match_id))
+
             team1_id = request.form['team1_id']
             team2_id = request.form['team2_id']
             championship_id = request.form['championship_id']
@@ -296,41 +303,40 @@ def edit_match(match_id):
             return redirect(url_for('manage_matches'))
         except Error as e:
             flash(f"An error occurred while updating the match: {e}", "danger")
+            return redirect(url_for('edit_match', match_id=match_id))
         finally:
             if cursor: cursor.close()
             if connection: connection.close()
-        return redirect(url_for('edit_match', match_id=match_id))
 
     # For GET request
     match = None
     teams = []
     championships = []
     try:
+        connection = get_db_connection()
         if connection:
             cursor = connection.cursor(dictionary=True)
-            # Fetch the match to edit
             cursor.execute("SELECT * FROM matches WHERE id = %s", (match_id,))
             match = cursor.fetchone()
             
-            # Fetch all teams and championships for dropdowns
+            if not match:
+                flash("Match not found!", "danger")
+                return redirect(url_for('manage_matches'))
+
             cursor.execute("SELECT id, name FROM teams ORDER BY name;")
             teams = cursor.fetchall()
             cursor.execute("SELECT id, name FROM championships ORDER BY name;")
             championships = cursor.fetchall()
 
-            # Format datetime for the input field
-            if match and match['match_time']:
+            if match.get('match_time'):
                 match['match_time_str'] = match['match_time'].strftime('%Y-%m-%dT%H:%M')
 
     except Error as e:
         flash(f"Could not load data for editing: {e}", "danger")
+        return redirect(url_for('manage_matches'))
     finally:
         if cursor: cursor.close()
         if connection: connection.close()
-
-    if not match:
-        flash("Match not found!", "danger")
-        return redirect(url_for('manage_matches'))
         
     return render_template('edit_match.html', match=match, teams=teams, championships=championships)
 
@@ -353,7 +359,7 @@ def delete_match(match_id):
         if connection: connection.close()
     return redirect(url_for('manage_matches'))
 
-# --- Manage Teams & Championships (No changes needed in these functions) ---
+# --- Manage Teams & Championships ---
 @app.route('/dashboard/teams')
 @login_required
 def manage_teams():
