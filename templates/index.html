@@ -1,69 +1,116 @@
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مباريات اليوم</title>
-    <link rel="stylesheet" href="https://www.yalla1shoot.com/wp-content/themes/AlbaYallaShoot/public/css/style.min.css?v=2.9.9.5">
-    <style>
-        body { background-color: #eceef2; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .container { max-width: 1024px; margin: auto; padding: 15px; }
-        .AY_Block { background: #fff; border-radius: 8px; box-shadow: 0 0 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .AYb_Head { padding: 12px; background: #1f2024; color: #fff; border-radius: 8px 8px 0 0; }
-        .AY_Match { display: block; text-decoration: none; color: #222; background: #f6f7fa; margin: 12px; border-radius: 8px; overflow: hidden; transition: transform 0.2s; }
-        .AY_Match:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .AY_Inner { display: flex; align-items: center; justify-content: space-between; padding: 15px; }
-        .MT_Team { flex: 1; text-align: center; }
-        .TM_Logo img { width: 70px; height: 70px; object-fit: contain; }
-        .TM_Name { font-weight: bold; margin-top: 8px; }
-        .MT_Data { flex: 0 0 120px; text-align: center; }
-        .MT_Time { font-size: 1.2em; font-weight: bold; }
-        .MT_Stat { font-size: 1em; font-weight: bold; padding: 5px 10px; border-radius: 5px; color: #fff; margin-top: 5px;}
-        .status-live { background-color: #dc3545; animation: blinker 1.5s linear infinite; }
-        .status-finished { background-color: #6c757d; }
-        .status-not-started { background-color: #28a745; }
-        @keyframes blinker { 50% { opacity: 0.5; } }
-        .MT_Info { background: #e9ebee; padding: 10px; display: flex; justify-content: space-around; font-size: 0.9em; color: #555; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="AY_Block">
-            <div class="AYb_Head">
-                <h2>جدول المباريات</h2>
-            </div>
-            <div class="AYb_Inner">
-                {% for match in matches %}
-                <a href="{{ url_for('match', match_id=match.id) }}" class="AY_Match">
-                    <div class="AY_Inner">
-                        <div class="MT_Team">
-                            <div class="TM_Logo"><img src="{{ match.team1_logo }}" alt="{{ match.team1_name }}"></div>
-                            <div class="TM_Name">{{ match.team1_name }}</div>
-                        </div>
-                        <div class="MT_Data">
-                            <div class="MT_Time">{{ match.match_time.strftime('%H:%M') if match.match_time else 'N/A' }}</div>
-                            <div class="MT_Stat 
-                                {% if match.status == 'جارية الآن' %}status-live
-                                {% elif match.status == 'انتهت' %}status-finished
-                                {% else %}status-not-started{% endif %}">
-                                {{ match.status }}
-                            </div>
-                        </div>
-                        <div class="MT_Team">
-                            <div class="TM_Logo"><img src="{{ match.team2_logo }}" alt="{{ match.team2_name }}"></div>
-                            <div class="TM_Name">{{ match.team2_name }}</div>
-                        </div>
+{% extends "layout.html" %}
+
+{% block title %}Kora TV - مباريات اليوم{% endblock %}
+
+{% block head %}
+<style>
+    .matches-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+    .match-card {
+        background-color: var(--card-background);
+        border-radius: 8px;
+        overflow: hidden;
+        text-decoration: none;
+        color: var(--text-color);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        display: flex;
+        flex-direction: column;
+    }
+    .match-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    }
+    .match-card-content {
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .team {
+        text-align: center;
+        width: 100px;
+    }
+    .team-logo {
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+    }
+    .team-name {
+        margin-top: 0.5rem;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+    .match-data {
+        text-align: center;
+    }
+    .match-time {
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+    .match-status {
+        font-size: 0.9rem;
+        font-weight: bold;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        color: #fff;
+        margin-top: 0.5rem;
+    }
+    .status-live { background-color: #E50914; animation: blinker 1.5s linear infinite; }
+    .status-finished { background-color: #555; }
+    .status-not-started { background-color: #28a745; }
+    @keyframes blinker { 50% { opacity: 0.6; } }
+    .match-card-footer {
+        background-color: rgba(0,0,0,0.3);
+        padding: 0.75rem 1.5rem;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        display: flex;
+        justify-content: space-between;
+        margin-top: auto;
+    }
+    .no-matches {
+        text-align: center;
+        padding: 4rem;
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="matches-grid">
+        {% for match in matches %}
+        <a href="{{ url_for('match', match_id=match.id) }}" class="match-card">
+            <div class="match-card-content">
+                <div class="team">
+                    <img src="{{ match.team1_logo }}" alt="{{ match.team1_name }}" class="team-logo">
+                    <div class="team-name">{{ match.team1_name }}</div>
+                </div>
+                <div class="match-data">
+                    <div class="match-time">{{ match.match_time.strftime('%H:%M') if match.match_time else 'N/A' }}</div>
+                    <div class="match-status 
+                        {% if match.status == 'جارية الآن' %}status-live
+                        {% elif match.status == 'انتهت' %}status-finished
+                        {% else %}status-not-started{% endif %}">
+                        {{ match.status }}
                     </div>
-                    <div class="MT_Info">
-                        <span>🏆 {{ match.championship_name }}</span>
-                        <span>🎤 {{ match.commentator }}</span>
-                    </div>
-                </a>
-                {% else %}
-                <p style="text-align:center; padding: 20px;">لا توجد مباريات لعرضها حالياً.</p>
-                {% endfor %}
+                </div>
+                <div class="team">
+                    <img src="{{ match.team2_logo }}" alt="{{ match.team2_name }}" class="team-logo">
+                    <div class="team-name">{{ match.team2_name }}</div>
+                </div>
             </div>
+            <div class="match-card-footer">
+                <span>🏆 {{ match.championship_name }}</span>
+                <span>🎤 {{ match.commentator }}</span>
+            </div>
+        </a>
+        {% else %}
+        <div class="no-matches">
+            <h2>لا توجد مباريات لعرضها حالياً.</h2>
         </div>
+        {% endfor %}
     </div>
-</body>
-</html>
+{% endblock %}
