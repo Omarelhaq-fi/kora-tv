@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تعديل المباراة</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #444; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        textarea { resize: vertical; min-height: 100px; }
+        .submit-btn { width: 100%; background-color: #007bff; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>تعديل المباراة</h1>
+        <form method="post">
+            <div class="form-group">
+                <label for="team1_id">الفريق الأول</label>
+                <select name="team1_id" id="team1_id" required>
+                    {% for team in teams %}
+                    <option value="{{ team.id }}" {% if team.id == match.team1_id %}selected{% endif %}>{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="team2_id">الفريق الثاني</label>
+                <select name="team2_id" id="team2_id" required>
+                    {% for team in teams %}
+                    <option value="{{ team.id }}" {% if team.id == match.team2_id %}selected{% endif %}>{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="championship_id">البطولة</label>
+                <select name="championship_id" id="championship_id" required>
+                    {% for championship in championships %}
+                    <option value="{{ championship.id }}" {% if championship.id == match.championship_id %}selected{% endif %}>{{ championship.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="match_time">توقيت المباراة</label>
+                <input type="datetime-local" id="match_time" name="match_time" value="{{ match.match_time_str }}" required>
+            </div>
+            <div class="form-group">
+                <label for="commentator">المعلق</label>
+                <input type="text" id="commentator" name="commentator" value="{{ match.commentator or '' }}" placeholder="اسم المعلق" required>
+            </div>
+            <div class="form-group">
+                <label for="description">الوصف</label>
+                <textarea id="description" name="description" required>{{ match.description or '' }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="iframe_code">كود الـ Iframe</label>
+                <textarea id="iframe_code" name="iframe_code" required>{{ match.iframe_code or '' }}</textarea>
+            </div>
+            <button type="submit" class="submit-btn">تحديث المباراة</button>
+        </form>
+    </div>
+</body>
+</html>
