@@ -1,5 +1,5 @@
 # app.py
-# Final, stable version with all features and bug fixes.
+# Final, stable version with all features, bug fixes, and Arabic encoding fix.
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -19,7 +19,9 @@ try:
                                           host='mysql6013.site4now.net',
                                           user='abc901_koratv',
                                           password='omarreda123',
-                                          database='db_abc901_koratv')
+                                          database='db_abc901_koratv',
+                                          charset='utf8mb4' # <-- CRITICAL FIX FOR ARABIC
+                                          )
     print("Database connection pool created successfully.")
 except Error as e:
     print(f"Error creating connection pool: {e}")
