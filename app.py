@@ -28,13 +28,14 @@ except Error as e:
 
 def get_db_connection():
     """Gets a connection from the pool."""
-    if db_pool:
-        try:
-            return db_pool.get_connection()
-        except Error as e:
-            print(f"Error getting connection from pool: {e}")
-            return None
-    return None
+    if not db_pool:
+        print("Database pool is not available.")
+        return None
+    try:
+        return db_pool.get_connection()
+    except Error as e:
+        print(f"Error getting connection from pool: {e}")
+        return None
 
 # --- Decorators & Helpers ---
 def login_required(f):
@@ -63,19 +64,22 @@ def get_match_status(match_time):
 # --- Public Routes ---
 @app.route('/')
 def index():
-    connection = get_db_connection()
+    connection = None
+    cursor = None
     matches_with_status = []
-    if connection:
-        try:
+    try:
+        connection = get_db_connection()
+        if connection:
             cursor = connection.cursor(dictionary=True)
+            # Using LEFT JOIN to be more robust
             query = """
                 SELECT m.id, m.match_time, t1.name AS team1_name, t1.logo_url AS team1_logo,
                        t2.name AS team2_name, t2.logo_url AS team2_logo, c.name AS championship_name,
                        m.commentator
                 FROM matches m
-                JOIN teams t1 ON m.team1_id = t1.id
-                JOIN teams t2 ON m.team2_id = t2.id
-                JOIN championships c ON m.championship_id = c.id
+                LEFT JOIN teams t1 ON m.team1_id = t1.id
+                LEFT JOIN teams t2 ON m.team2_id = t2.id
+                LEFT JOIN championships c ON m.championship_id = c.id
                 ORDER BY m.match_time ASC;
             """
             cursor.execute(query)
@@ -83,38 +87,43 @@ def index():
             for match in matches:
                 match['status'] = get_match_status(match['match_time'])
                 matches_with_status.append(match)
-        except Error as e:
-            print(f"Error fetching matches for index: {e}")
-        finally:
+    except Error as e:
+        print(f"Error fetching matches for index: {e}")
+    finally:
+        if cursor:
             cursor.close()
-            connection.close() # Returns connection to the pool
+        if connection and connection.is_connected():
+            connection.close()
     return render_template('index.html', matches=matches_with_status)
 
 @app.route('/match/<int:match_id>')
 def match(match_id):
-    connection = get_db_connection()
+    connection = None
+    cursor = None
     match_data = None
-    if connection:
-        try:
+    try:
+        connection = get_db_connection()
+        if connection:
             cursor = connection.cursor(dictionary=True)
-            # ... (Query remains the same)
             cursor.execute("""
                 SELECT m.id, m.match_time, m.description, m.iframe_code, t1.name AS team1_name,
                        t1.logo_url AS team1_logo, t2.name AS team2_name, t2.logo_url AS team2_logo,
                        c.name AS championship_name, m.commentator
                 FROM matches m
-                JOIN teams t1 ON m.team1_id = t1.id
-                JOIN teams t2 ON m.team2_id = t2.id
-                JOIN championships c ON m.championship_id = c.id
+                LEFT JOIN teams t1 ON m.team1_id = t1.id
+                LEFT JOIN teams t2 ON m.team2_id = t2.id
+                LEFT JOIN championships c ON m.championship_id = c.id
                 WHERE m.id = %s;
             """, (match_id,))
             match_data = cursor.fetchone()
             if match_data:
                  match_data['status'] = get_match_status(match_data['match_time'])
-        except Error as e:
-            print(f"Error fetching match details: {e}")
-        finally:
+    except Error as e:
+        print(f"Error fetching match details: {e}")
+    finally:
+        if cursor:
             cursor.close()
+        if connection and connection.is_connected():
             connection.close()
     return render_template('match.html', match=match_data)
 
@@ -126,18 +135,23 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        connection = get_db_connection()
+        connection = None
+        cursor = None
         user = None
-        if connection:
-            try:
+        try:
+            connection = get_db_connection()
+            if connection:
                 cursor = connection.cursor(dictionary=True)
                 cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
                 user = cursor.fetchone()
-            except Error as e:
-                flash(f"Database error: {e}", "danger")
-            finally:
+        except Error as e:
+            flash(f"Database error: {e}", "danger")
+        finally:
+            if cursor:
                 cursor.close()
+            if connection and connection.is_connected():
                 connection.close()
+        
         if user and check_password_hash(user['password_hash'], password):
             session['user_id'] = user['id']
             session['username'] = user['username']
@@ -152,20 +166,24 @@ def register():
         username = request.form['username']
         password = request.form['password']
         hashed_password = generate_password_hash(password)
-        connection = get_db_connection()
-        if connection:
-            try:
+        connection = None
+        cursor = None
+        try:
+            connection = get_db_connection()
+            if connection:
                 cursor = connection.cursor()
                 cursor.execute("INSERT INTO users (username, password_hash) VALUES (%s, %s)", (username, hashed_password))
                 connection.commit()
                 flash('You have successfully registered! Please log in.', 'success')
                 return redirect(url_for('login'))
-            except mysql.connector.IntegrityError:
-                flash('Username already exists.', 'danger')
-            except Error as e:
-                flash(f"An error occurred: {e}", "danger")
-            finally:
+        except mysql.connector.IntegrityError:
+            flash('Username already exists.', 'danger')
+        except Error as e:
+            flash(f"An error occurred: {e}", "danger")
+        finally:
+            if cursor:
                 cursor.close()
+            if connection and connection.is_connected():
                 connection.close()
     return render_template('register.html')
 
@@ -185,37 +203,43 @@ def dashboard():
 @app.route('/dashboard/matches')
 @login_required
 def manage_matches():
-    connection = get_db_connection()
+    connection = None
+    cursor = None
     matches = []
-    if connection:
-        try:
+    try:
+        connection = get_db_connection()
+        if connection:
             cursor = connection.cursor(dictionary=True)
             query = """
                 SELECT m.id, m.match_time, t1.name as team1, t2.name as team2 
                 FROM matches m
-                JOIN teams t1 ON m.team1_id = t1.id
-                JOIN teams t2 ON m.team2_id = t2.id
+                LEFT JOIN teams t1 ON m.team1_id = t1.id
+                LEFT JOIN teams t2 ON m.team2_id = t2.id
                 ORDER BY m.match_time DESC;
             """
             cursor.execute(query)
             matches = cursor.fetchall()
-        except Error as e:
-            flash(f"Error fetching matches: {e}", "danger")
-        finally:
+    except Error as e:
+        flash(f"Error fetching matches: {e}", "danger")
+    finally:
+        if cursor:
             cursor.close()
+        if connection and connection.is_connected():
             connection.close()
     return render_template('manage_matches.html', matches=matches)
 
 @app.route('/dashboard/matches/add', methods=['GET', 'POST'])
 @login_required
 def add_match():
-    connection = get_db_connection()
+    connection = None
+    cursor = None
     if request.method == 'POST':
-        if not connection:
-            flash("Database connection could not be established.", "danger")
-            return redirect(url_for('add_match'))
         try:
-            # Get form data
+            connection = get_db_connection()
+            if not connection:
+                flash("Database connection could not be established.", "danger")
+                return redirect(url_for('add_match'))
+
             team1_id = request.form['team1_id']
             team2_id = request.form['team2_id']
             championship_id = request.form['championship_id']
@@ -237,23 +261,28 @@ def add_match():
             flash(f"An error occurred while adding the match: {e}", "danger")
             return redirect(url_for('add_match'))
         finally:
-            cursor.close()
-            connection.close()
+            if cursor:
+                cursor.close()
+            if connection and connection.is_connected():
+                connection.close()
 
-    # For GET request, fetch teams and championships
+    # For GET request
     teams = []
     championships = []
-    if connection:
-        try:
+    try:
+        connection = get_db_connection()
+        if connection:
             cursor = connection.cursor(dictionary=True)
             cursor.execute("SELECT id, name FROM teams ORDER BY name;")
             teams = cursor.fetchall()
             cursor.execute("SELECT id, name FROM championships ORDER BY name;")
             championships = cursor.fetchall()
-        except Error as e:
-            flash(f"Could not load data for the form: {e}", "danger")
-        finally:
+    except Error as e:
+        flash(f"Could not load data for the form: {e}", "danger")
+    finally:
+        if cursor:
             cursor.close()
+        if connection and connection.is_connected():
             connection.close()
     return render_template('add_match.html', teams=teams, championships=championships)
 
@@ -261,17 +290,21 @@ def add_match():
 @app.route('/dashboard/teams')
 @login_required
 def manage_teams():
-    connection = get_db_connection()
+    connection = None
+    cursor = None
     teams = []
-    if connection:
-        try:
+    try:
+        connection = get_db_connection()
+        if connection:
             cursor = connection.cursor(dictionary=True)
             cursor.execute("SELECT id, name, logo_url FROM teams ORDER BY name;")
             teams = cursor.fetchall()
-        except Error as e:
-            flash(f"Error fetching teams: {e}", "danger")
-        finally:
+    except Error as e:
+        flash(f"Error fetching teams: {e}", "danger")
+    finally:
+        if cursor:
             cursor.close()
+        if connection and connection.is_connected():
             connection.close()
     return render_template('manage_teams.html', teams=teams)
 
@@ -281,19 +314,23 @@ def add_team():
     if request.method == 'POST':
         team_name = request.form['team_name']
         logo_url = request.form['logo_url']
-        connection = get_db_connection()
-        if connection:
-            try:
+        connection = None
+        cursor = None
+        try:
+            connection = get_db_connection()
+            if connection:
                 cursor = connection.cursor()
                 cursor.execute("INSERT INTO teams (name, logo_url) VALUES (%s, %s)", (team_name, logo_url))
                 connection.commit()
                 flash(f"Team '{team_name}' added successfully!", "success")
-            except mysql.connector.IntegrityError:
-                flash(f"Team '{team_name}' already exists.", "danger")
-            except Error as e:
-                flash(f"An error occurred: {e}", "danger")
-            finally:
+        except mysql.connector.IntegrityError:
+            flash(f"Team '{team_name}' already exists.", "danger")
+        except Error as e:
+            flash(f"An error occurred: {e}", "danger")
+        finally:
+            if cursor:
                 cursor.close()
+            if connection and connection.is_connected():
                 connection.close()
         return redirect(url_for('manage_teams'))
     return render_template('add_team.html')
@@ -302,17 +339,21 @@ def add_team():
 @app.route('/dashboard/championships')
 @login_required
 def manage_championships():
-    connection = get_db_connection()
+    connection = None
+    cursor = None
     championships = []
-    if connection:
-        try:
+    try:
+        connection = get_db_connection()
+        if connection:
             cursor = connection.cursor(dictionary=True)
             cursor.execute("SELECT id, name FROM championships ORDER BY name;")
             championships = cursor.fetchall()
-        except Error as e:
-            flash(f"Error fetching championships: {e}", "danger")
-        finally:
+    except Error as e:
+        flash(f"Error fetching championships: {e}", "danger")
+    finally:
+        if cursor:
             cursor.close()
+        if connection and connection.is_connected():
             connection.close()
     return render_template('manage_championships.html', championships=championships)
 
@@ -321,19 +362,23 @@ def manage_championships():
 def add_championship():
     if request.method == 'POST':
         championship_name = request.form['championship_name']
-        connection = get_db_connection()
-        if connection:
-            try:
+        connection = None
+        cursor = None
+        try:
+            connection = get_db_connection()
+            if connection:
                 cursor = connection.cursor()
                 cursor.execute("INSERT INTO championships (name) VALUES (%s)", (championship_name,))
                 connection.commit()
                 flash(f"Championship '{championship_name}' added successfully!", "success")
-            except mysql.connector.IntegrityError:
-                flash(f"Championship '{championship_name}' already exists.", "danger")
-            except Error as e:
-                flash(f"An error occurred: {e}", "danger")
-            finally:
+        except mysql.connector.IntegrityError:
+            flash(f"Championship '{championship_name}' already exists.", "danger")
+        except Error as e:
+            flash(f"An error occurred: {e}", "danger")
+        finally:
+            if cursor:
                 cursor.close()
+            if connection and connection.is_connected():
                 connection.close()
         return redirect(url_for('manage_championships'))
     return render_template('add_championship.html')
