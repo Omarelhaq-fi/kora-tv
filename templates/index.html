@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مباريات اليوم</title>
+    <!-- Basic styling, you can replace this with the full CSS from your file -->
+    <link rel="stylesheet" href="https://www.yalla1shoot.com/wp-content/themes/AlbaYallaShoot/public/css/style.min.css?v=2.9.9.5">
+    <style>
+        body { background-color: #eceef2; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .container { max-width: 1024px; margin: auto; padding: 15px; }
+        .AY_Block { background: #fff; border-radius: 8px; box-shadow: 0 0 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .AYb_Head { padding: 12px; background: #1f2024; color: #fff; border-radius: 8px 8px 0 0; }
+        .AY_Match { display: block; text-decoration: none; color: #222; background: #f6f7fa; margin: 12px; border-radius: 8px; overflow: hidden; transition: transform 0.2s; }
+        .AY_Match:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .AY_Inner { display: flex; align-items: center; justify-content: space-between; padding: 15px; }
+        .MT_Team { flex: 1; text-align: center; }
+        .TM_Logo img { width: 70px; height: 70px; }
+        .TM_Name { font-weight: bold; margin-top: 8px; }
+        .MT_Data { flex: 0 0 120px; text-align: center; }
+        .MT_Time { font-size: 1.2em; font-weight: bold; }
+        .MT_Info { background: #e9ebee; padding: 8px; text-align: center; font-size: 0.9em; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="AY_Block">
+            <div class="AYb_Head">
+                <h2>جدول المباريات</h2>
+            </div>
+            <div class="AYb_Inner">
+                <!-- This is where the dynamic content will go -->
+                {% for match in matches %}
+                <a href="{{ url_for('match', match_id=match.id) }}" class="AY_Match">
+                    <div class="AY_Inner">
+                        <div class="MT_Team">
+                            <div class="TM_Logo"><img src="{{ match.team1_logo }}" alt="{{ match.team1_name }}"></div>
+                            <div class="TM_Name">{{ match.team1_name }}</div>
+                        </div>
+                        <div class="MT_Data">
+                            <div class="MT_Time">{{ match.match_time.strftime('%H:%M') }}</div>
+                            <div>VS</div>
+                        </div>
+                        <div class="MT_Team">
+                            <div class="TM_Logo"><img src="{{ match.team2_logo }}" alt="{{ match.team2_name }}"></div>
+                            <div class="TM_Name">{{ match.team2_name }}</div>
+                        </div>
+                    </div>
+                    <div class="MT_Info">
+                        <span>{{ match.championship_name }}</span>
+                    </div>
+                </a>
+                {% else %}
+                <p style="text-align:center; padding: 20px;">لا توجد مباريات لعرضها حالياً. قم بإضافة مباريات من لوحة التحكم.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
