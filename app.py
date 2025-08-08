@@ -16,10 +16,10 @@ app.secret_key = 'your_very_secret_random_string_here_change_me'
 try:
     db_pool = pooling.MySQLConnectionPool(pool_name="mypool",
                                           pool_size=5,
-                                          host='mysql6013.site4now.net',
-                                          user='abc901_koratv',
+                                          host='mysql1003.site4now.net',
+                                          user='abcbc9_matchss',
                                           password='omarreda123',
-                                          database='db_abc901_koratv',
+                                          database='db_abcbc9_matchss',
                                           charset='utf8mb4'
                                           )
     print("Database connection pool created successfully.")
